@@ -43,14 +43,16 @@ COPY --from=builder /app/pnpm-lock.yaml ./
 # Install only production dependencies
 RUN pnpm install --prod --frozen-lockfile
 
-# Add a non-root user
+# Add a non-root user. The app only reads from /app at runtime, so the files
+# stay root-owned and world-readable. A recursive chown here would rewrite every
+# file in node_modules into a new layer, doubling the image and stalling the
+# export step on small build hosts.
 RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nestjs && \
-    chown -R nestjs:nodejs /app
+    adduser --system --uid 1001 nestjs
 USER nestjs
 
 # Expose the port specified by the PORT environment variable (default: 3001)
-ENV PORT 300
+ENV PORT 3001
 EXPOSE ${PORT}
 
 # Health check to verify app is running
